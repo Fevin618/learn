@@ -518,3 +518,101 @@ alert.digest_mode = 1
 alert.expires = 24h
 alert.track = 1
 ```
+
+
+# Experiment 9: Windows Event Log Monitoring and Scheduled Reporting in Splunk
+
+## Step 1: Configure Windows Event Log Inputs
+
+1. Open Splunk Web at `http://localhost:8000`.
+2. Navigate to **Settings → Data Inputs → Local Event Logs**.
+3. Select **Local Event Logs (Event Log Collections)**.
+4. Open the configuration for `localhost`.
+5. Under the available logs, select both:
+
+   * Security
+   * System
+6. Keep the index set to the default value, if that matches your current configuration.
+7. Click **Save**.
+
+## Step 2: Verify Incoming Events
+
+1. Open **Search & Reporting**.
+2. Execute the following SPL query to check incoming events across indexes:
+
+```spl
+index=* earliest=-15m latest=now
+| stats count by index, sourcetype, source
+```
+
+3. Set the time range to **Last 15 minutes**.
+4. Examine the results to identify the index, sourcetype, and source receiving the Windows event logs.
+
+## Step 3: Search Windows Security Events
+
+1. Execute the following SPL query to retrieve Windows Security events received during the previous 15 minutes:
+
+```spl
+index=main sourcetype="WinEventLog:Security" earliest=-15m latest=now
+```
+
+2. Review the returned events and their fields to verify that Windows Security logs are available for analysis.
+
+## Step 4: Generate a Windows Security Summary
+
+1. Run the following SPL query to summarize the number of Security events by host over the previous 24 hours:
+
+```spl
+index=main sourcetype="WinEventLog:Security" earliest=-24h latest=now
+| stats count by host
+| sort - count
+```
+
+2. Review the aggregated results.
+
+**Expected result:** The report previously returned 1,054 events during a manual execution. The count may vary depending on the events received during the selected time range.
+
+## Step 5: Save the Search as a Report
+
+1. After executing the query in Step 4, click **Save As → Report**.
+
+2. Enter the report name:
+
+   `Scheduled Windows Security Monitoring`
+
+3. Save the report.
+
+4. Navigate to **Settings → Searches, reports, and alerts**.
+
+5. Verify that the saved report appears in the list.
+
+## Step 6: Configure the Report Schedule
+
+1. Open **Settings → Searches, reports, and alerts**.
+2. Locate `Scheduled Windows Security Monitoring`.
+3. Open its editing or scheduling options.
+4. Select **Edit Schedule**.
+5. Enable **Schedule Report**.
+6. Set the schedule to **Run every day**.
+7. Choose a convenient execution time, such as **9:00 AM**.
+8. Under **Time Range**, select **Relative** and configure:
+
+   * **Earliest:** 24 hours ago
+   * **Latest:** Now
+9. Save the schedule.
+
+**Note:** You may see a message such as "There are no results because the first scheduled run of the report has not completed." This can occur before the first scheduled execution has finished.
+
+## Step 7: Verify Report Execution
+
+1. Navigate to **Settings → Searches, reports, and alerts**.
+2. Confirm that `Scheduled Windows Security Monitoring` is enabled.
+3. Open the report and run it manually to verify that results are displayed.
+4. Allow the configured schedule to run.
+5. Check the report's execution history or other available scheduling information to verify that the scheduled run occurred.
+
+**Important:** Running the report manually verifies the search, but it does not prove that the scheduled execution has occurred. Verify the scheduled run separately.
+
+## Result
+
+Windows Security and System event inputs were configured in Splunk. Windows Security events were searched and summarized by host, and the search was saved as a report with a daily schedule for automated monitoring.
